@@ -1,0 +1,51 @@
+body {
+  width: 320px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  color: #333;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+h1 {
+  font-size: 20px;
+  margin: 0 0 4px 0;
+  color: #0a66c2; /* Using a LinkedIn-like blue */
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 20px 0;
+}
+
+button {
+  background-color: #0a66c2;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  width: 100%;
+}
+
+button:hover {
+  background-color: #004182;
+}
+
+#status-message {
+  margin-top: 16px;
+  font-size: 13px;
+  color: #0a66c2;
+  font-style: italic;
+  display: none; /* Hidden by default */
+}

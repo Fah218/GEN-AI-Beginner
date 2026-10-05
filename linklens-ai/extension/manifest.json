@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "LinkLens AI",
+  "version": "1.0",
+  "description": "An AI copilot for LinkedIn.",
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
