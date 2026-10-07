@@ -1,4 +1,5 @@
 // content.js
+console.log("LinkLens content.js loaded");
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "extractPost") {
