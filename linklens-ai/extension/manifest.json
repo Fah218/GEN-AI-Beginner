@@ -5,5 +5,18 @@
   "description": "An AI copilot for LinkedIn.",
   "action": {
     "default_popup": "popup.html"
-  }
+  },
+  "permissions": [
+    "activeTab"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.linkedin.com/*"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ]
 }
