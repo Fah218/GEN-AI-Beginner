@@ -16,47 +16,51 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 function extractVisiblePost() {
-  // DOM-selection strategy:
-  // 1. Post Containers: We avoid fragile generated classes. We look for 'data-urn' containing 'urn:li:activity'
-  //    which is LinkedIn's standard structural identifier for a post, or semantic roles like role="article".
-  // 2. Visible Post: We check which of the found posts is currently visible within the viewport to get what the user is looking at.
-  // 3. Text Body: Inside the post, we target the body text container. We try known static-ish classes first.
-  //    As a fallback, we extract the longest text from spans with dir="ltr", as LinkedIn usually wraps user text this way.
-
+  console.log("--- LinkLens AI: Starting post extraction ---");
   const postSelectors = [
-    'div[data-urn^="urn:li:activity"]', // Most reliable: Data attribute for post activity
-    '.feed-shared-update-v2',            // Common static class
-    '[data-view-name="feed-update"]',    // View name attribute
-    'div[role="article"]'                // Semantic role fallback
+    'div[data-urn^="urn:li:activity"]',
+    '.feed-shared-update-v2',
+    '[data-view-name="feed-update"]',
+    'div[role="article"]'
   ];
   
   let posts = [];
   for (const selector of postSelectors) {
     posts = document.querySelectorAll(selector);
-    if (posts.length > 0) break;
-  }
-  
-  if (posts.length === 0) {
-    return null;
-  }
-  
-  // Find the first post that is visible in the viewport
-  let visiblePost = null;
-  for (const post of posts) {
-    const rect = post.getBoundingClientRect();
-    // Consider it visible if its top is near or within the screen, and bottom is also reasonably in view
-    if (rect.top >= -100 && rect.top <= (window.innerHeight || document.documentElement.clientHeight)) {
-      visiblePost = post;
+    console.log(`Selector '${selector}' found ${posts.length} elements.`);
+    if (posts.length > 0) {
+      console.log(`Using selector: '${selector}'`);
       break;
     }
   }
   
-  // Fallback to the first post if none meet the strict viewport criteria
+  if (posts.length === 0) {
+    console.log("No candidate post containers were found with any selector.");
+    return null;
+  }
+  
+  console.log(`Found ${posts.length} candidate post containers.`);
+  
+  let visiblePost = null;
+  for (let i = 0; i < posts.length; i++) {
+    const post = posts[i];
+    const rect = post.getBoundingClientRect();
+    console.log(`Candidate ${i} bounds: top=${rect.top}, bottom=${rect.bottom}, windowHeight=${window.innerHeight}`);
+    if (rect.top >= -100 && rect.top <= (window.innerHeight || document.documentElement.clientHeight)) {
+      console.log(`Candidate ${i} is considered visible!`);
+      visiblePost = post;
+      break;
+    } else {
+      console.log(`Candidate ${i} is NOT considered visible.`);
+    }
+  }
+  
   if (!visiblePost) {
+    console.log("No strictly visible candidate found, falling back to candidate 0.");
     visiblePost = posts[0];
   }
   
-  // Extracting the text from the post
+  console.log("Attempting to extract text from the selected visible post...");
   const textSelectors = [
     '.update-components-text', 
     '.feed-shared-update-v2__description',
@@ -66,26 +70,39 @@ function extractVisiblePost() {
   let textContainer = null;
   for (const selector of textSelectors) {
     textContainer = visiblePost.querySelector(selector);
-    if (textContainer) break;
+    if (textContainer) {
+       console.log(`Text container found using selector '${selector}'. Text length: ${textContainer.innerText.trim().length}`);
+       break;
+    } else {
+       console.log(`Text container selector '${selector}' found 0 elements inside the visible post.`);
+    }
   }
   
   if (textContainer) {
-    return textContainer.innerText.trim();
+    const extracted = textContainer.innerText.trim();
+    console.log(`Successfully extracted ${extracted.length} characters.`);
+    return extracted;
   }
   
-  // Ultimate Fallback: look for the longest text block in ltr spans
+  console.log("Specific text container not found. Trying fallback: spans with dir='ltr'.");
   const textSpans = visiblePost.querySelectorAll('span[dir="ltr"]');
+  console.log(`Found ${textSpans.length} spans with dir='ltr' inside the visible post.`);
+  
   let longestText = "";
-  for (const span of textSpans) {
+  for (let i = 0; i < textSpans.length; i++) {
+    const span = textSpans[i];
     const text = span.innerText.trim();
+    console.log(`Span ${i} text length: ${text.length}`);
     if (text.length > longestText.length) {
       longestText = text;
     }
   }
   
   if (longestText) {
+    console.log(`Successfully extracted ${longestText.length} characters using fallback.`);
     return longestText;
   }
   
+  console.log("Failed to extract any text from the selected post.");
   return null;
 }
