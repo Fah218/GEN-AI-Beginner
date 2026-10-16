@@ -10,9 +10,17 @@
     <h1>LinkLens AI</h1>
     <p class="subtitle">Your AI Copilot for LinkedIn</p>
     
-    <button id="analyze-btn">Analyze Current Post</button>
+    <div class="controls" style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px;">
+      <select id="operation-select" style="padding: 6px; font-size: 14px;">
+        <option value="summarize">Summarize</option>
+        <option value="explain">Explain</option>
+        <option value="keyTakeaways">Key Takeaways</option>
+      </select>
+      <button id="analyze-btn">Analyze Current Post</button>
+    </div>
     
     <div id="status-message"></div>
+    <div id="result-box" style="display: none; margin-top: 10px; padding: 10px; background: #f3f2ef; border-radius: 4px; font-size: 14px; white-space: pre-wrap;"></div>
   </div>
   <script src="popup.js"></script>
 </body>
