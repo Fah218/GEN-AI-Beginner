@@ -15,74 +15,124 @@
           <span class="logo-icon">🔍</span>
           <h1>LinkLens AI</h1>
         </div>
-        <button id="reset-btn" class="reset-btn" type="button" title="Clear chat & detect current post" aria-label="New Post">
-          <span class="reset-icon">🔄</span>
-          <span class="reset-text">New Post</span>
-        </button>
+        <div class="header-actions">
+          <button id="history-btn" class="header-action-btn" type="button" title="View chat history" aria-label="History">
+            <span class="action-icon">🕒</span>
+            <span class="action-text">History</span>
+          </button>
+          <button id="reset-btn" class="header-action-btn" type="button" title="Clear chat & detect current post" aria-label="New Post">
+            <span class="action-icon">🔄</span>
+            <span class="action-text">New Post</span>
+          </button>
+        </div>
       </div>
       <div class="header-context">
         <span id="post-badge" class="post-badge badge-detecting">Detecting post...</span>
       </div>
     </header>
 
-    <!-- Status / Notification Alert Banner -->
-    <div id="status-message" class="status-message" style="display: none;" role="status"></div>
+    <!-- Main Chat View -->
+    <div id="chat-view" class="chat-view">
+      <!-- Status / Notification Alert Banner -->
+      <div id="status-message" class="status-message" style="display: none;" role="status"></div>
 
-    <!-- Quick Shortcut Chips -->
-    <section class="shortcuts-section" aria-label="Quick Actions">
-      <div class="shortcuts-label">Quick Actions:</div>
-      <div class="shortcuts-container" role="toolbar" aria-label="Quick Analysis Shortcuts">
-        <button type="button" class="shortcut-chip" data-op="summarize" title="Summarize in 2-3 sentences">
-          ⚡ Summarize
+      <!-- Quick Shortcut Chips -->
+      <section class="shortcuts-section" aria-label="Quick Actions">
+        <div class="shortcuts-label">Quick Actions:</div>
+        <div class="shortcuts-container" role="toolbar" aria-label="Quick Analysis Shortcuts">
+          <button type="button" class="shortcut-chip" data-op="summarize" title="Summarize in 2-3 sentences">
+            ⚡ Summarize
+          </button>
+          <button type="button" class="shortcut-chip" data-op="explain" title="Explain simply for beginners">
+            💡 Explain
+          </button>
+          <button type="button" class="shortcut-chip" data-op="keyTakeaways" title="Extract key takeaways">
+            📌 Takeaways
+          </button>
+        </div>
+      </section>
+
+      <!-- Chat Thread Area -->
+      <main id="chat-thread" class="chat-thread" aria-label="Conversation Thread">
+        <!-- Empty State -->
+        <div id="chat-empty-state" class="chat-empty-state">
+          <div class="empty-icon">💬</div>
+          <p class="empty-title">Chat with this LinkedIn Post</p>
+          <p class="empty-subtitle">Click a shortcut above or ask any question below to analyze and discuss the current post.</p>
+        </div>
+
+        <!-- Messages List -->
+        <div id="chat-messages" class="chat-messages"></div>
+
+        <!-- Typing Indicator -->
+        <div id="typing-indicator" class="typing-indicator" style="display: none;" aria-live="polite">
+          <span class="typing-label">LinkLens is thinking</span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+      </main>
+
+      <!-- Sticky Bottom Chat Input Bar -->
+      <footer class="chat-footer">
+        <form id="chat-form" class="chat-form">
+          <input
+            id="chat-input"
+            class="chat-input"
+            type="text"
+            placeholder="Ask a question about this post..."
+            autocomplete="off"
+            aria-label="Ask a question about this post"
+          />
+          <button id="send-btn" class="send-btn" type="submit" aria-label="Send message">
+            <svg class="send-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+          </button>
+        </form>
+      </footer>
+    </div>
+
+    <!-- History View Panel -->
+    <div id="history-view" class="history-view" style="display: none;">
+      <div class="history-header">
+        <button id="history-back-btn" class="history-back-btn" type="button" aria-label="Back to Chat">
+          ← Back to Chat
         </button>
-        <button type="button" class="shortcut-chip" data-op="explain" title="Explain simply for beginners">
-          💡 Explain
-        </button>
-        <button type="button" class="shortcut-chip" data-op="keyTakeaways" title="Extract key takeaways">
-          📌 Takeaways
-        </button>
-      </div>
-    </section>
-
-    <!-- Chat Thread Area -->
-    <main id="chat-thread" class="chat-thread" aria-label="Conversation Thread">
-      <!-- Empty State -->
-      <div id="chat-empty-state" class="chat-empty-state">
-        <div class="empty-icon">💬</div>
-        <p class="empty-title">Chat with this LinkedIn Post</p>
-        <p class="empty-subtitle">Click a shortcut above or ask any question below to analyze and discuss the current post.</p>
+        <span class="history-title">Saved Chats</span>
       </div>
 
-      <!-- Messages List -->
-      <div id="chat-messages" class="chat-messages"></div>
-
-      <!-- Typing Indicator -->
-      <div id="typing-indicator" class="typing-indicator" style="display: none;" aria-live="polite">
-        <span class="typing-label">LinkLens is thinking</span>
-        <span class="dot"></span>
-        <span class="dot"></span>
-        <span class="dot"></span>
-      </div>
-    </main>
-
-    <!-- Sticky Bottom Chat Input Bar -->
-    <footer class="chat-footer">
-      <form id="chat-form" class="chat-form">
+      <!-- History Search Bar -->
+      <div class="history-search-bar">
+        <span class="search-icon">🔍</span>
         <input
-          id="chat-input"
-          class="chat-input"
+          id="history-search-input"
+          class="history-search-input"
           type="text"
-          placeholder="Ask a question about this post..."
+          placeholder="Search saved chats..."
           autocomplete="off"
-          aria-label="Ask a question about this post"
+          aria-label="Search saved chats"
         />
-        <button id="send-btn" class="send-btn" type="submit" aria-label="Send message">
-          <svg class="send-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-          </svg>
-        </button>
-      </form>
-    </footer>
+        <button id="history-search-clear" class="history-search-clear" type="button" style="display: none;" title="Clear search" aria-label="Clear search">×</button>
+      </div>
+
+      <!-- Zero Total Saved Chats Empty State -->
+      <div id="history-empty-state" class="history-empty-state" style="display: none;">
+        <div class="empty-icon">📂</div>
+        <p class="empty-title">No Saved Chats Yet</p>
+        <p class="empty-subtitle">Chats with LinkedIn posts will automatically be saved here so you can revisit them anytime.</p>
+      </div>
+
+      <!-- Zero Search Results Empty State -->
+      <div id="history-no-results" class="history-no-results" style="display: none;">
+        <div class="empty-icon">🔍</div>
+        <p class="empty-title">No matching chats found</p>
+        <p id="no-results-subtitle" class="empty-subtitle">Try searching for a different keyword.</p>
+        <button id="clear-search-btn" class="clear-search-btn" type="button">Clear Search</button>
+      </div>
+
+      <div id="history-list" class="history-list"></div>
+    </div>
 
     <!-- Preserved Hidden Elements for backward compatibility -->
     <div class="visually-hidden" aria-hidden="true">
