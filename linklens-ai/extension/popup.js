@@ -1,59 +1,32 @@
 document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
-  const analyzeBtn = document.getElementById('analyze-btn');
-  const btnSpinner = document.getElementById('btn-spinner');
-  const btnText = document.getElementById('btn-text');
+  const resetBtn = document.getElementById('reset-btn');
+  const postBadge = document.getElementById('post-badge');
   const statusMessage = document.getElementById('status-message');
+  const shortcutChips = document.querySelectorAll('.shortcut-chip');
+  const chatThread = document.getElementById('chat-thread');
+  const chatEmptyState = document.getElementById('chat-empty-state');
+  const chatMessages = document.getElementById('chat-messages');
+  const typingIndicator = document.getElementById('typing-indicator');
+  const chatForm = document.getElementById('chat-form');
+  const chatInput = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('send-btn');
+
+  // Preserved legacy elements for compatibility
+  const analyzeBtn = document.getElementById('analyze-btn');
   const operationSelect = document.getElementById('operation-select');
-  const segmentBtns = document.querySelectorAll('.segment-btn');
-  const resultSection = document.getElementById('result-section');
-  const resultBadge = document.getElementById('result-badge');
-  const resultBox = document.getElementById('result-box');
-  const copyBtn = document.getElementById('copy-btn');
-  const copyIcon = document.getElementById('copy-icon');
-  const copyText = document.getElementById('copy-text');
+  const legacySegmentBtns = document.querySelectorAll('.segment-btn');
 
   // State
-  let isAnalyzing = false;
-  let currentResultRawText = '';
+  let currentPostText = '';
+  let conversationHistory = []; // Array of { role: 'user' | 'assistant', content: string }
+  let isResponding = false;
 
-  const OPERATION_LABELS = {
-    summarize: 'Summary',
-    explain: 'Beginner Explanation',
-    keyTakeaways: 'Key Takeaways'
+  const SHORTCUT_PROMPTS = {
+    summarize: 'Summarize the main points of this post in 2-3 concise sentences.',
+    explain: 'Explain the core topic of this post simply, as if to a beginner.',
+    keyTakeaways: 'Extract 3-5 key takeaways from this post as bullet points.'
   };
-
-  /**
-   * Synchronize segmented buttons and the preserved hidden <select>
-   */
-  function setOperation(op) {
-    if (!op) return;
-
-    segmentBtns.forEach((btn) => {
-      const isActive = btn.dataset.op === op;
-      btn.classList.toggle('active', isActive);
-      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-    });
-
-    if (operationSelect && operationSelect.value !== op) {
-      operationSelect.value = op;
-    }
-  }
-
-  // Handle segmented button clicks
-  segmentBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      if (isAnalyzing) return;
-      setOperation(btn.dataset.op);
-    });
-  });
-
-  // Handle external or programmatic changes to operationSelect
-  if (operationSelect) {
-    operationSelect.addEventListener('change', () => {
-      setOperation(operationSelect.value);
-    });
-  }
 
   /**
    * Display a status banner with semantic color styling
@@ -71,27 +44,80 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Set the UI loading state and disable controls to prevent duplicate submissions
+   * Update the post context indicator badge in the header
    */
-  function setLoading(loading, message = '') {
-    isAnalyzing = loading;
+  function updatePostBadge(text, stateClass = 'badge-detecting') {
+    if (!postBadge) return;
+    postBadge.className = `post-badge ${stateClass}`;
+    postBadge.textContent = text;
+  }
 
-    if (analyzeBtn) {
-      analyzeBtn.disabled = loading;
+  /**
+   * Scroll chat thread container to bottom
+   */
+  function scrollToBottom() {
+    if (chatThread) {
+      chatThread.scrollTo({
+        top: chatThread.scrollHeight,
+        behavior: 'smooth'
+      });
     }
+  }
 
-    segmentBtns.forEach((btn) => {
-      btn.disabled = loading;
+  /**
+   * Set loading UI state
+   */
+  function setLoading(loading) {
+    isResponding = loading;
+
+    if (sendBtn) sendBtn.disabled = loading;
+    if (chatInput) chatInput.disabled = loading;
+    if (resetBtn) resetBtn.disabled = loading;
+
+    shortcutChips.forEach(chip => {
+      chip.disabled = loading;
     });
 
-    if (loading) {
-      if (btnSpinner) btnSpinner.style.display = 'inline-block';
-      if (btnText) btnText.textContent = 'Analyzing...';
-      if (message) showStatus(message, 'loading');
-    } else {
-      if (btnSpinner) btnSpinner.style.display = 'none';
-      if (btnText) btnText.textContent = 'Analyze Current Post';
+    if (typingIndicator) {
+      typingIndicator.style.display = loading ? 'flex' : 'none';
     }
+
+    if (loading) {
+      scrollToBottom();
+    }
+  }
+
+  /**
+   * Copy text to clipboard with modern API and reliable textarea fallback
+   */
+  async function copyToClipboard(text) {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        console.warn('[LinkLens AI] navigator.clipboard.writeText failed, using fallback:', err);
+      }
+    }
+
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.top = '-9999px';
+      textarea.style.left = '-9999px';
+      textarea.setAttribute('readonly', '');
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      if (successful) return true;
+    } catch (fallbackErr) {
+      console.error('[LinkLens AI] Fallback copy failed:', fallbackErr);
+    }
+
+    return false;
   }
 
   /**
@@ -120,17 +146,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (/^[\*\-]\s+/.test(line)) {
         if (!currentList) {
           currentList = document.createElement('ul');
-          currentList.className = 'result-list';
+          currentList.className = 'bubble-list';
           container.appendChild(currentList);
         }
         const li = document.createElement('li');
-        li.className = 'result-list-item';
+        li.className = 'bubble-list-item';
         appendFormattedInlineText(li, line.replace(/^[\*\-]\s+/, ''));
         currentList.appendChild(li);
       } else {
         currentList = null;
         const p = document.createElement('p');
-        p.className = 'result-paragraph';
+        p.className = 'bubble-paragraph';
         appendFormattedInlineText(p, line);
         container.appendChild(p);
       }
@@ -154,93 +180,114 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Copy text to clipboard with modern API and reliable fallback
+   * Append a user chat bubble
    */
-  async function copyToClipboard(text) {
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-      try {
-        await navigator.clipboard.writeText(text);
-        return true;
-      } catch (err) {
-        console.warn('[LinkLens AI] navigator.clipboard.writeText failed, using fallback:', err);
-      }
+  function appendUserBubble(text) {
+    if (!chatMessages) return;
+
+    if (chatEmptyState) {
+      chatEmptyState.style.display = 'none';
     }
 
-    // Fallback using temporary textarea
-    try {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.top = '-9999px';
-      textarea.style.left = '-9999px';
-      textarea.setAttribute('readonly', '');
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
-      const successful = document.execCommand('copy');
-      document.body.removeChild(textarea);
-      if (successful) return true;
-    } catch (fallbackErr) {
-      console.error('[LinkLens AI] Fallback copy failed:', fallbackErr);
-    }
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble bubble-user';
 
-    return false;
-  }
+    const content = document.createElement('div');
+    content.className = 'bubble-content';
+    content.textContent = text;
 
-  // Copy button handler
-  if (copyBtn) {
-    copyBtn.addEventListener('click', async () => {
-      if (!currentResultRawText) return;
-
-      const success = await copyToClipboard(currentResultRawText);
-      if (success) {
-        copyBtn.classList.add('copied');
-        if (copyText) copyText.textContent = 'Copied!';
-        if (copyIcon) copyIcon.textContent = '✓';
-
-        setTimeout(() => {
-          copyBtn.classList.remove('copied');
-          if (copyText) copyText.textContent = 'Copy';
-          if (copyIcon) copyIcon.textContent = '📋';
-        }, 2000);
-      } else {
-        if (copyText) copyText.textContent = 'Failed';
-        setTimeout(() => {
-          if (copyText) copyText.textContent = 'Copy';
-        }, 2000);
-      }
-    });
+    bubble.appendChild(content);
+    chatMessages.appendChild(bubble);
+    scrollToBottom();
   }
 
   /**
-   * Main Analysis Handler
+   * Append an assistant chat bubble with safe formatting and copy button
    */
-  analyzeBtn.addEventListener('click', async () => {
-    if (isAnalyzing || analyzeBtn.disabled) return;
+  function appendAssistantBubble(text) {
+    if (!chatMessages) return;
 
-    // Reset UI state
-    hideStatus();
-    if (resultSection) resultSection.style.display = 'none';
-    resultBox.style.display = 'none';
-    setLoading(true, 'Extracting visible LinkedIn post...');
+    if (chatEmptyState) {
+      chatEmptyState.style.display = 'none';
+    }
+
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble bubble-assistant';
+
+    // Bubble Header with bot label and Copy button
+    const header = document.createElement('div');
+    header.className = 'bubble-header';
+
+    const senderLabel = document.createElement('span');
+    senderLabel.className = 'bubble-sender';
+    senderLabel.textContent = 'LinkLens AI';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'bubble-copy-btn';
+    copyBtn.type = 'button';
+    copyBtn.title = 'Copy response';
+    copyBtn.setAttribute('aria-label', 'Copy response');
+
+    const copyIcon = document.createElement('span');
+    copyIcon.className = 'copy-icon';
+    copyIcon.textContent = '📋';
+
+    const copyText = document.createElement('span');
+    copyText.className = 'copy-text';
+    copyText.textContent = 'Copy';
+
+    copyBtn.appendChild(copyIcon);
+    copyBtn.appendChild(copyText);
+
+    copyBtn.addEventListener('click', async () => {
+      const ok = await copyToClipboard(text);
+      if (ok) {
+        copyBtn.classList.add('copied');
+        copyText.textContent = 'Copied!';
+        copyIcon.textContent = '✓';
+        setTimeout(() => {
+          copyBtn.classList.remove('copied');
+          copyText.textContent = 'Copy';
+          copyIcon.textContent = '📋';
+        }, 2000);
+      }
+    });
+
+    header.appendChild(senderLabel);
+    header.appendChild(copyBtn);
+    bubble.appendChild(header);
+
+    // Bubble Body with safe markdown formatting
+    const body = document.createElement('div');
+    body.className = 'bubble-content';
+    renderSafeOutput(body, text);
+    bubble.appendChild(body);
+
+    chatMessages.appendChild(bubble);
+    scrollToBottom();
+  }
+
+  /**
+   * Extract the visible LinkedIn post from the active browser tab
+   */
+  async function extractPostFromTab() {
+    updatePostBadge('Detecting post...', 'badge-detecting');
 
     try {
-      // Query the active tab in current window
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-      // Verify page is on LinkedIn
-      if (!tab || !tab.url || !tab.url.includes("linkedin.com")) {
+      if (!tab || !tab.url || !tab.url.includes('linkedin.com')) {
+        updatePostBadge('Not on LinkedIn', 'badge-warning');
         showStatus('Please navigate to an active LinkedIn page first.', 'info');
-        return;
+        return null;
       }
 
-      // Send extraction message to content script
       const response = await new Promise((resolve) => {
-        chrome.tabs.sendMessage(tab.id, { action: "extractPost" }, (res) => {
+        chrome.tabs.sendMessage(tab.id, { action: 'extractPost' }, (res) => {
           if (chrome.runtime.lastError) {
             resolve({
               success: false,
-              error: 'Could not contact the LinkedIn page. Please refresh the page and try again.'
+              error: 'Could not contact LinkedIn page. Please refresh the page and try again.'
             });
           } else {
             resolve(res);
@@ -248,66 +295,172 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
 
-      // Handle missing post or extraction failure
-      if (!response || !response.success) {
+      if (response && response.success && response.text) {
+        currentPostText = response.text;
+        const lengthStr = response.text.length > 999 
+          ? `${(response.text.length / 1000).toFixed(1)}k`
+          : `${response.text.length}`;
+        updatePostBadge(`Post detected (${lengthStr} chars)`, 'badge-detected');
+        hideStatus();
+        return response.text;
+      } else {
+        currentPostText = '';
+        updatePostBadge('No post detected', 'badge-warning');
         showStatus(
           (response && response.error) ? response.error : 'No visible LinkedIn post found. Scroll to center a post and try again.',
           'warning'
         );
+        return null;
+      }
+    } catch (err) {
+      console.error('[LinkLens AI] Tab extraction error:', err);
+      updatePostBadge('Extraction error', 'badge-warning');
+      showStatus('An error occurred while accessing the active tab.', 'error');
+      return null;
+    }
+  }
+
+  /**
+   * Main Chat Dispatcher: sends user prompt to /api/chat with post context and conversation history
+   */
+  async function handleSendMessage(userPrompt) {
+    if (isResponding) return;
+
+    const trimmedPrompt = (userPrompt || '').trim();
+    if (!trimmedPrompt) return;
+
+    // Ensure we have the LinkedIn post context
+    if (!currentPostText) {
+      const extracted = await extractPostFromTab();
+      if (!extracted) {
+        return;
+      }
+    }
+
+    hideStatus();
+    appendUserBubble(trimmedPrompt);
+
+    if (chatInput) chatInput.value = '';
+
+    // Add to conversation history
+    conversationHistory.push({
+      role: 'user',
+      content: trimmedPrompt
+    });
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:3000/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postText: currentPostText,
+          messages: conversationHistory
+        })
+      });
+
+      if (response.status === 429) {
+        const errorData = await response.json().catch(() => null);
+        const errorMsg = (errorData && errorData.error)
+          ? errorData.error
+          : 'Gemini API quota has been reached. Please retry after the quota resets.';
+        showStatus(errorMsg, 'error');
+        // Roll back unfulfilled user turn
+        conversationHistory.pop();
         return;
       }
 
-      // Proceed with analysis
-      setLoading(true, 'Analyzing post with Gemini...');
-      const postText = response.text;
-      const operation = operationSelect ? operationSelect.value : 'summarize';
+      const data = await response.json().catch(() => null);
 
-      try {
-        const apiRes = await fetch('http://localhost:3000/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: postText, operation })
+      if (response.ok && data && data.success && data.reply) {
+        appendAssistantBubble(data.reply);
+        conversationHistory.push({
+          role: 'assistant',
+          content: data.reply
         });
-
-        // Requirement 4: Handle 429 quota exhaustion separately without inventing reset times
-        if (apiRes.status === 429) {
+      } else {
+        const errorMsg = (data && data.error) ? data.error : 'AI analysis request failed.';
+        if (errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.toLowerCase().includes('quota')) {
           showStatus('Gemini API quota has been reached. Please retry after the quota resets.', 'error');
-          return;
-        }
-
-        const apiData = await apiRes.json().catch(() => null);
-
-        if (apiRes.ok && apiData && apiData.success) {
-          hideStatus();
-          currentResultRawText = apiData.result || '';
-
-          // Update result badge label
-          if (resultBadge) {
-            resultBadge.textContent = OPERATION_LABELS[operation] || 'Result';
-          }
-
-          // Safely render output
-          renderSafeOutput(resultBox, currentResultRawText);
-
-          // Display result card
-          if (resultSection) resultSection.style.display = 'block';
-          resultBox.style.display = 'block';
         } else {
-          const errorMsg = (apiData && apiData.error) ? apiData.error : 'Backend analysis failed.';
-          if (errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.toLowerCase().includes('quota')) {
-            showStatus('Gemini API quota has been reached. Please retry after the quota resets.', 'error');
-          } else {
-            showStatus(errorMsg, 'error');
-          }
+          showStatus(errorMsg, 'error');
         }
-      } catch (networkErr) {
-        // Backend connection failure handled separately
-        showStatus('Cannot connect to the backend server. Please make sure npm start is running on http://localhost:3000.', 'error');
+        // Roll back unfulfilled user turn
+        conversationHistory.pop();
       }
-    } catch (tabErr) {
-      showStatus('An error occurred while accessing the active tab.', 'error');
+    } catch (networkErr) {
+      console.error('[LinkLens AI] Backend network error:', networkErr);
+      showStatus('Cannot connect to the backend server. Please make sure npm start is running on http://localhost:3000.', 'error');
+      conversationHistory.pop();
     } finally {
       setLoading(false);
+      if (chatInput) chatInput.focus();
     }
+  }
+
+  // Handle Chat Form Submit
+  if (chatForm) {
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (chatInput) {
+        handleSendMessage(chatInput.value);
+      }
+    });
+  }
+
+  // Handle Shortcut Chip Clicks
+  shortcutChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      if (isResponding) return;
+      const op = chip.dataset.op;
+      const prompt = SHORTCUT_PROMPTS[op];
+      if (prompt) {
+        handleSendMessage(prompt);
+      }
+    });
   });
+
+  // Handle Reset / New Post Button Click
+  if (resetBtn) {
+    resetBtn.addEventListener('click', async () => {
+      if (isResponding) return;
+
+      conversationHistory = [];
+      currentPostText = '';
+
+      if (chatMessages) {
+        chatMessages.replaceChildren();
+      }
+
+      if (chatEmptyState) {
+        chatEmptyState.style.display = 'flex';
+      }
+
+      hideStatus();
+      if (chatInput) chatInput.value = '';
+
+      await extractPostFromTab();
+    });
+  }
+
+  // Preserved legacy support for analyzeBtn and operationSelect
+  if (analyzeBtn) {
+    analyzeBtn.addEventListener('click', () => {
+      const op = operationSelect ? operationSelect.value : 'summarize';
+      const prompt = SHORTCUT_PROMPTS[op] || SHORTCUT_PROMPTS.summarize;
+      handleSendMessage(prompt);
+    });
+  }
+
+  legacySegmentBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (operationSelect) operationSelect.value = btn.dataset.op;
+      const prompt = SHORTCUT_PROMPTS[btn.dataset.op];
+      if (prompt) handleSendMessage(prompt);
+    });
+  });
+
+  // Initial automatic post extraction on popup open
+  extractPostFromTab();
 });

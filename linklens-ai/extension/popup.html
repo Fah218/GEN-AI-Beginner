@@ -10,56 +10,105 @@
   <div class="container">
     <!-- Header -->
     <header class="header">
-      <div class="logo-row">
-        <span class="logo-icon">🔍</span>
-        <h1>LinkLens AI</h1>
+      <div class="header-top">
+        <div class="logo-row">
+          <span class="logo-icon">🔍</span>
+          <h1>LinkLens AI</h1>
+        </div>
+        <button id="reset-btn" class="reset-btn" type="button" title="Clear chat & detect current post" aria-label="New Post">
+          <span class="reset-icon">🔄</span>
+          <span class="reset-text">New Post</span>
+        </button>
       </div>
-      <p class="subtitle">Your AI Copilot for LinkedIn</p>
+      <div class="header-context">
+        <span id="post-badge" class="post-badge badge-detecting">Detecting post...</span>
+      </div>
     </header>
-    
-    <!-- Controls Section -->
-    <section class="controls" aria-label="Controls">
-      <!-- Segmented Operation Selector -->
-      <div class="segmented-control" role="tablist" aria-label="Analysis Operation">
-        <button type="button" class="segment-btn active" data-op="summarize" role="tab" aria-selected="true">
-          Summarize
-        </button>
-        <button type="button" class="segment-btn" data-op="explain" role="tab" aria-selected="false">
-          Explain
-        </button>
-        <button type="button" class="segment-btn" data-op="keyTakeaways" role="tab" aria-selected="false">
-          Key Takeaways
-        </button>
-      </div>
-
-      <!-- Preserved Hidden Select for backward compatibility -->
-      <select id="operation-select" class="visually-hidden" aria-hidden="true" tabindex="-1">
-        <option value="summarize">Summarize</option>
-        <option value="explain">Explain</option>
-        <option value="keyTakeaways">Key Takeaways</option>
-      </select>
-
-      <!-- Primary Action Button -->
-      <button id="analyze-btn" class="analyze-btn" type="button">
-        <span id="btn-spinner" class="spinner" style="display: none;"></span>
-        <span id="btn-text">Analyze Current Post</span>
-      </button>
-    </section>
 
     <!-- Status / Notification Alert Banner -->
     <div id="status-message" class="status-message" style="display: none;" role="status"></div>
 
-    <!-- Result Section -->
-    <section id="result-section" class="result-section" style="display: none;" aria-label="Analysis Result">
-      <div class="result-header">
-        <span id="result-badge" class="result-badge">Summary</span>
-        <button id="copy-btn" class="copy-btn" type="button" title="Copy result to clipboard" aria-label="Copy result">
-          <span id="copy-icon" class="copy-icon">📋</span>
-          <span id="copy-text">Copy</span>
+    <!-- Quick Shortcut Chips -->
+    <section class="shortcuts-section" aria-label="Quick Actions">
+      <div class="shortcuts-label">Quick Actions:</div>
+      <div class="shortcuts-container" role="toolbar" aria-label="Quick Analysis Shortcuts">
+        <button type="button" class="shortcut-chip" data-op="summarize" title="Summarize in 2-3 sentences">
+          ⚡ Summarize
+        </button>
+        <button type="button" class="shortcut-chip" data-op="explain" title="Explain simply for beginners">
+          💡 Explain
+        </button>
+        <button type="button" class="shortcut-chip" data-op="keyTakeaways" title="Extract key takeaways">
+          📌 Takeaways
         </button>
       </div>
-      <div id="result-box" class="result-box"></div>
     </section>
+
+    <!-- Chat Thread Area -->
+    <main id="chat-thread" class="chat-thread" aria-label="Conversation Thread">
+      <!-- Empty State -->
+      <div id="chat-empty-state" class="chat-empty-state">
+        <div class="empty-icon">💬</div>
+        <p class="empty-title">Chat with this LinkedIn Post</p>
+        <p class="empty-subtitle">Click a shortcut above or ask any question below to analyze and discuss the current post.</p>
+      </div>
+
+      <!-- Messages List -->
+      <div id="chat-messages" class="chat-messages"></div>
+
+      <!-- Typing Indicator -->
+      <div id="typing-indicator" class="typing-indicator" style="display: none;" aria-live="polite">
+        <span class="typing-label">LinkLens is thinking</span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
+    </main>
+
+    <!-- Sticky Bottom Chat Input Bar -->
+    <footer class="chat-footer">
+      <form id="chat-form" class="chat-form">
+        <input
+          id="chat-input"
+          class="chat-input"
+          type="text"
+          placeholder="Ask a question about this post..."
+          autocomplete="off"
+          aria-label="Ask a question about this post"
+        />
+        <button id="send-btn" class="send-btn" type="submit" aria-label="Send message">
+          <svg class="send-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </form>
+    </footer>
+
+    <!-- Preserved Hidden Elements for backward compatibility -->
+    <div class="visually-hidden" aria-hidden="true">
+      <div class="segmented-control">
+        <button type="button" class="segment-btn" data-op="summarize">Summarize</button>
+        <button type="button" class="segment-btn" data-op="explain">Explain</button>
+        <button type="button" class="segment-btn" data-op="keyTakeaways">Key Takeaways</button>
+      </div>
+      <select id="operation-select" tabindex="-1">
+        <option value="summarize">Summarize</option>
+        <option value="explain">Explain</option>
+        <option value="keyTakeaways">Key Takeaways</option>
+      </select>
+      <button id="analyze-btn" type="button">
+        <span id="btn-spinner"></span>
+        <span id="btn-text">Analyze Current Post</span>
+      </button>
+      <section id="result-section">
+        <span id="result-badge"></span>
+        <button id="copy-btn" type="button">
+          <span id="copy-icon"></span>
+          <span id="copy-text"></span>
+        </button>
+        <div id="result-box"></div>
+      </section>
+    </div>
   </div>
 
   <script src="popup.js"></script>
