@@ -43,7 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const SHORTCUT_PROMPTS = {
     summarize: 'Summarize the main points of this post in 2-3 concise sentences.',
     explain: 'Explain the core topic of this post simply, as if to a beginner.',
-    keyTakeaways: 'Extract 3-5 key takeaways from this post as bullet points.'
+    keyTakeaways: 'Extract 3-5 key takeaways from this post as bullet points.',
+    comments: 'Generate 3 distinct, high-quality LinkedIn comment suggestions for this post across three tones:\n- **Professional**: Courteous, articulate, and value-adding\n- **Casual**: Warm, authentic, friendly, and conversational\n- **Insightful**: Thought-provoking, analytical, or asking a smart follow-up question\nFormat each tone with a bold header followed by the exact comment text ready to copy.'
   };
 
   /**
@@ -168,6 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const cleanPost = (postText || '').trim().replace(/\s+/g, ' ');
     const postSnippet = cleanPost.slice(0, 36);
 
+    if (p.includes('LinkedIn comment suggestions') || p.includes('comment suggestions') || p.startsWith('💬 Comments')) {
+      return postSnippet ? `💬 Comments: ${postSnippet}...` : '💬 Comment Ideas';
+    }
     if (p.includes('Summarize the main points') || p.startsWith('⚡ Summarize')) {
       return postSnippet ? `⚡ Summary: ${postSnippet}...` : '⚡ Post Summary';
     }
@@ -578,13 +582,126 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
+   * Helper to detect and extract multi-tone comment suggestions
+   */
+  function parseCommentSuggestions(text) {
+    if (!text || typeof text !== 'string') return null;
+
+    const hasProf = /Professional/i.test(text);
+    const hasCas = /Casual/i.test(text);
+    const hasIns = /Insightful/i.test(text);
+
+    // Require at least two tones to confirm it is a multi-tone comment suggestion set
+    if (!((hasProf && hasCas) || (hasProf && hasIns) || (hasCas && hasIns))) {
+      return null;
+    }
+
+    const parts = text.split(/(?:^|\n)(?:[-*]\s*)?(?:\*\*|###?\s*)?(Professional|Casual|Insightful)(?:\*\*)?:?\s*\n*/i);
+    const intro = (parts[0] || '').trim();
+    const suggestions = [];
+
+    const TONE_EMOJIS = {
+      professional: '👔 Professional',
+      casual: '☕ Casual',
+      insightful: '🧠 Insightful'
+    };
+
+    for (let i = 1; i < parts.length; i += 2) {
+      const rawTone = parts[i];
+      const toneKey = rawTone.toLowerCase();
+      let content = (parts[i + 1] || '').trim();
+
+      // Clean leading bullets or surrounding quotes
+      content = content.replace(/^[-*]\s+/, '').replace(/^["'](.*)["']$/, '$1').trim();
+
+      if (toneKey && content) {
+        suggestions.push({
+          toneKey,
+          label: TONE_EMOJIS[toneKey] || rawTone,
+          content
+        });
+      }
+    }
+
+    return suggestions.length > 0 ? { intro, suggestions } : null;
+  }
+
+  /**
    * Safely render AI response without using innerHTML
-   * Formats paragraphs, bullet lists, and **bold** labels using standard DOM methods
+   * Formats comment suggestion cards with individual copy buttons,
+   * or standard paragraphs, bullet lists, and **bold** labels using standard DOM methods
    */
   function renderSafeOutput(container, text) {
     container.replaceChildren();
 
     if (!text || typeof text !== 'string') {
+      return;
+    }
+
+    // Check if response is a comment suggestion set
+    const parsedComments = parseCommentSuggestions(text);
+    if (parsedComments) {
+      if (parsedComments.intro) {
+        const introP = document.createElement('p');
+        introP.className = 'bubble-paragraph';
+        appendFormattedInlineText(introP, parsedComments.intro);
+        container.appendChild(introP);
+      }
+
+      for (const item of parsedComments.suggestions) {
+        const card = document.createElement('div');
+        card.className = 'comment-suggestion-card';
+
+        const cardHeader = document.createElement('div');
+        cardHeader.className = 'comment-card-header';
+
+        const badge = document.createElement('span');
+        badge.className = `comment-tone-badge tone-${item.toneKey}`;
+        badge.textContent = item.label;
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'comment-copy-btn';
+        copyBtn.type = 'button';
+        copyBtn.title = `Copy ${item.label} comment`;
+        copyBtn.setAttribute('aria-label', `Copy ${item.label} comment`);
+
+        const copyIcon = document.createElement('span');
+        copyIcon.className = 'copy-icon';
+        copyIcon.textContent = '📋';
+
+        const copyText = document.createElement('span');
+        copyText.className = 'copy-text';
+        copyText.textContent = 'Copy';
+
+        copyBtn.appendChild(copyIcon);
+        copyBtn.appendChild(copyText);
+
+        copyBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const ok = await copyToClipboard(item.content);
+          if (ok) {
+            copyBtn.classList.add('copied');
+            copyIcon.textContent = '✓';
+            copyText.textContent = 'Copied!';
+            setTimeout(() => {
+              copyBtn.classList.remove('copied');
+              copyIcon.textContent = '📋';
+              copyText.textContent = 'Copy';
+            }, 2000);
+          }
+        });
+
+        cardHeader.appendChild(badge);
+        cardHeader.appendChild(copyBtn);
+        card.appendChild(cardHeader);
+
+        const commentBody = document.createElement('p');
+        commentBody.className = 'comment-text';
+        commentBody.textContent = item.content;
+        card.appendChild(commentBody);
+
+        container.appendChild(card);
+      }
       return;
     }
 
