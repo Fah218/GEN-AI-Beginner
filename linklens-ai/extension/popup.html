@@ -1,27 +1,67 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LinkLens AI</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="container">
-    <h1>LinkLens AI</h1>
-    <p class="subtitle">Your AI Copilot for LinkedIn</p>
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-row">
+        <span class="logo-icon">🔍</span>
+        <h1>LinkLens AI</h1>
+      </div>
+      <p class="subtitle">Your AI Copilot for LinkedIn</p>
+    </header>
     
-    <div class="controls" style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px;">
-      <select id="operation-select" style="padding: 6px; font-size: 14px;">
+    <!-- Controls Section -->
+    <section class="controls" aria-label="Controls">
+      <!-- Segmented Operation Selector -->
+      <div class="segmented-control" role="tablist" aria-label="Analysis Operation">
+        <button type="button" class="segment-btn active" data-op="summarize" role="tab" aria-selected="true">
+          Summarize
+        </button>
+        <button type="button" class="segment-btn" data-op="explain" role="tab" aria-selected="false">
+          Explain
+        </button>
+        <button type="button" class="segment-btn" data-op="keyTakeaways" role="tab" aria-selected="false">
+          Key Takeaways
+        </button>
+      </div>
+
+      <!-- Preserved Hidden Select for backward compatibility -->
+      <select id="operation-select" class="visually-hidden" aria-hidden="true" tabindex="-1">
         <option value="summarize">Summarize</option>
         <option value="explain">Explain</option>
         <option value="keyTakeaways">Key Takeaways</option>
       </select>
-      <button id="analyze-btn">Analyze Current Post</button>
-    </div>
-    
-    <div id="status-message"></div>
-    <div id="result-box" style="display: none; margin-top: 10px; padding: 10px; background: #f3f2ef; border-radius: 4px; font-size: 14px; white-space: pre-wrap;"></div>
+
+      <!-- Primary Action Button -->
+      <button id="analyze-btn" class="analyze-btn" type="button">
+        <span id="btn-spinner" class="spinner" style="display: none;"></span>
+        <span id="btn-text">Analyze Current Post</span>
+      </button>
+    </section>
+
+    <!-- Status / Notification Alert Banner -->
+    <div id="status-message" class="status-message" style="display: none;" role="status"></div>
+
+    <!-- Result Section -->
+    <section id="result-section" class="result-section" style="display: none;" aria-label="Analysis Result">
+      <div class="result-header">
+        <span id="result-badge" class="result-badge">Summary</span>
+        <button id="copy-btn" class="copy-btn" type="button" title="Copy result to clipboard" aria-label="Copy result">
+          <span id="copy-icon" class="copy-icon">📋</span>
+          <span id="copy-text">Copy</span>
+        </button>
+      </div>
+      <div id="result-box" class="result-box"></div>
+    </section>
   </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
