@@ -925,7 +925,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/chat', {
+      const response = await fetch('https://linklens-ai-backend.onrender.com/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -966,7 +966,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (networkErr) {
       console.error('[LinkLens AI] Backend network error:', networkErr);
-      showStatus('Cannot connect to the backend server. Please make sure npm start is running on http://localhost:3000.', 'error');
+      showStatus('Cannot connect to the LinkLens AI backend. Please try again in a moment.', 'error');
       conversationHistory.pop();
     } finally {
       setLoading(false);

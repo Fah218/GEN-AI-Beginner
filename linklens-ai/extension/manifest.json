@@ -6,10 +6,13 @@
   "action": {
     "default_popup": "popup.html"
   },
-  "permissions": [
-    "activeTab",
-    "storage"
-  ],
+ "permissions": [
+  "activeTab",
+  "storage"
+],
+"host_permissions": [
+  "https://linklens-ai-backend.onrender.com/*"
+],
   "content_scripts": [
     {
       "matches": [
