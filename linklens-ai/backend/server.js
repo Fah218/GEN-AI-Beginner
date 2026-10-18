@@ -6,17 +6,23 @@ const { SystemMessage, HumanMessage, AIMessage } = require('@langchain/core/mess
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust the first proxy hop (Render reverse proxy) for accurate client IP detection & rate limiting
+app.set('trust proxy', 1);
+
 app.use(express.json({ limit: '50kb' }));
 
-const ALLOWED_EXTENSION_ORIGIN = 'chrome-extension://epokodiefcepfocmdgedijigobbcpjcn';
+// Allowed Chrome Extension origin with secure fallback to local extension ID
+const ALLOWED_EXTENSION_ORIGIN =
+  process.env.ALLOWED_EXTENSION_ORIGIN || 'chrome-extension://epokodiefcepfocmdgedijigobbcpjcn';
 
 // Restrict CORS to LinkLens Chrome Extension and localhost development
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
   if (origin) {
+    const allowedOrigins = ALLOWED_EXTENSION_ORIGIN.split(',').map(o => o.trim());
     const isAllowed =
-      origin === ALLOWED_EXTENSION_ORIGIN ||
+      allowedOrigins.includes(origin) ||
       origin.startsWith('http://localhost') ||
       origin.startsWith('http://127.0.0.1');
 
@@ -57,8 +63,8 @@ const MAX_REQUESTS_PER_WINDOW = 10;
 const rateLimitMap = new Map();
 
 function analysisRateLimiter(req, res, next) {
-  // Use the actual socket remote address, not client-supplied forwarding headers
-  const clientIp = req.socket.remoteAddress || '127.0.0.1';
+  // Use req.ip (resolved via trusted reverse proxy on Render, or fallback to socket address)
+  const clientIp = req.ip || req.socket.remoteAddress || '127.0.0.1';
   const now = Date.now();
 
   const timestamps = rateLimitMap.get(clientIp) || [];
