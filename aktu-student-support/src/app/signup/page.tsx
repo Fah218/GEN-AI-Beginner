@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   GraduationCap, 
   Mail, 
@@ -18,8 +19,10 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { api, setStoredAuth } from "@/lib/api";
 
 export default function SignUpPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     fullName: "",
     rollNumber: "",
@@ -33,6 +36,7 @@ export default function SignUpPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [apiError, setApiError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -73,15 +77,37 @@ export default function SignUpPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsLoading(true);
-    setTimeout(() => {
+    setApiError("");
+    setIsSuccess(false);
+
+    try {
+      const res = await api.signup({
+        fullName: formData.fullName,
+        rollNumber: formData.rollNumber,
+        email: formData.email,
+        branch: formData.branch,
+        semester: formData.semester,
+        password: formData.password,
+      });
+
+      if (res.token) {
+        setStoredAuth(res.token, res.student);
+        setIsSuccess(true);
+        setTimeout(() => {
+          router.push("/chat");
+        }, 1500);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Registration failed. Please check the provided details or server status.";
+      setApiError(msg);
+    } finally {
       setIsLoading(false);
-      setIsSuccess(true);
-    }, 1200);
+    }
   };
 
   return (
@@ -107,6 +133,17 @@ export default function SignUpPage() {
                 Get tailor-made responses for your specific engineering branch and year
               </p>
             </div>
+
+            {/* API Error state banner */}
+            {apiError && (
+              <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs sm:text-sm flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-rose-200">Registration Failed</p>
+                  <p className="text-slate-300 mt-0.5">{apiError}</p>
+                </div>
+              </div>
+            )}
 
             {isSuccess && (
               <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm flex items-start gap-3">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   GraduationCap, 
   Mail, 
@@ -16,8 +17,10 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { api, setStoredAuth } from "@/lib/api";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     rollNumberOrEmail: "",
     password: "",
@@ -26,6 +29,7 @@ export default function LoginPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [apiError, setApiError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState(false);
 
@@ -46,16 +50,33 @@ export default function LoginPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsLoading(true);
-    // Simulate UI authentication delay
-    setTimeout(() => {
+    setApiError("");
+    setSuccessMessage(false);
+
+    try {
+      const res = await api.login({
+        rollNumberOrEmail: formData.rollNumberOrEmail,
+        password: formData.password,
+      });
+
+      if (res.token) {
+        setStoredAuth(res.token, res.student);
+        setSuccessMessage(true);
+        setTimeout(() => {
+          router.push("/chat");
+        }, 1200);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to sign in. Please verify your credentials or server status.";
+      setApiError(msg);
+    } finally {
       setIsLoading(false);
-      setSuccessMessage(true);
-    }, 1200);
+    }
   };
 
   return (
@@ -85,6 +106,17 @@ export default function LoginPage() {
                 Access your personalized AKTU AI Chatbot and pinned syllabus resources
               </p>
             </div>
+
+            {/* API Error state banner */}
+            {apiError && (
+              <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs sm:text-sm flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-rose-200">Authentication Failed</p>
+                  <p className="text-slate-300 mt-0.5">{apiError}</p>
+                </div>
+              </div>
+            )}
 
             {/* Success state banner */}
             {successMessage && (
