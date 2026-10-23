@@ -44,7 +44,10 @@ Important Context & Boundaries (Phase 2 - Non-RAG Mode):
  */
 async function generateGeminiReply(history, userMessage) {
   const client = getGeminiClient();
-  const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  let modelName = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  if (!modelName.startsWith('models/')) {
+    modelName = `models/${modelName}`;
+  }
 
   // Format history into Gemini API contents structure: [{ role: 'user'|'model', parts: [{ text }] }]
   const contents = [];
